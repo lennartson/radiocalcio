@@ -11,7 +11,7 @@ npm install
 npm start
 ```
 
-Then open http://localhost:3000. To use another port, set `PORT`:
+Then open http://localhost:3000. The server needs a Postgres database, given by `DATABASE_URL`, for example `postgres://user:pass@localhost:5432/radiocalico`. To use another port, set `PORT`:
 
 ```sh
 PORT=8080 npm start
@@ -32,32 +32,34 @@ The stream URL is in `stream_URL.txt` and in the `STREAM_URL` constant at the to
 
 Requires Docker with the Compose plugin.
 
+Production runs three containers: **nginx** serves the player and proxies `/api/` to the **backend**, which stores data in **Postgres**. Only nginx is published. Before the first run, create a `.env` file in the project root with a database password (it is git-ignored):
+
 ```sh
-# Production: built image, data kept in a named volume, port 3000
+echo POSTGRES_PASSWORD=5304b925787937eab23003a8084c9476 > .env
+```
+
+```sh
+# Production: the player at http://localhost:3000 (set PORT in .env to change it)
 docker compose --profile prod up --build
 
-# Development: source mounted, auto-restarts on change, port 3001
+# Development: source mounted, auto-restarts on change, at http://localhost:3001
 docker compose --profile dev up --build
 ```
 
-The `prod` image installs production dependencies only and runs as a non-root user. The SQLite database is stored in a volume so it survives rebuilds. The `dev` image uses a separate volume.
+Production data lives in the `pgdata` volume and survives `docker compose down`. Remove it with `docker compose down -v`, which deletes all data.
 
 ## Deploy
 
-The published image needs no checkout or build step. It only needs outbound access to the stream host (`d3d4yli4hf5bmh.cloudfront.net`), since the live audio, track metadata and cover art come from there.
+The backend image is published to GHCR, and the nginx frontend is built from this repo. The stream itself is external: the live audio, track metadata and cover art come from `d3d4yli4hf5bmh.cloudfront.net`, so the host needs outbound internet access.
 
-```sh
-docker run -d --name radiocalico -p 3000:3000 \
-  -v radiodata:/app/data --restart unless-stopped \
-  ghcr.io/lennartson/radiocalcio:latest
-```
-
-The SQLite database is stored in the `radiodata` volume. Images are published for `linux/amd64` and `linux/arm64`.
+The easiest deployment is the compose stack above, run from a checkout of this repo. Images for the backend are published for `linux/amd64` and `linux/arm64` at `ghcr.io/lennartson/radiocalcio`.
 
 ## Project layout
 
-- `server.js`: Express server that serves `public/` and the API routes.
-- `db.js`: SQLite connection (better-sqlite3). Creates `data/app.db` and the `users` table on startup.
+- `server.js`: Express API, plus static serving of `public/` when run standalone.
+- `db.js`: Postgres connection pool (`DATABASE_URL`). Creates the `users` table on startup.
+- `Dockerfile` / `Dockerfile.nginx` / `Dockerfile.dev`: backend, frontend, and dev images.
+- `nginx/default.conf`: nginx config for static files and the API proxy.
 - `public/`: the player (`index.html`, `style.css`, `app.js`) and the logo.
 - `RadioCalico_Style_Guide.txt`: brand colors, typography, and UI guidelines.
 
@@ -73,7 +75,7 @@ The player does not use these routes.
 
 ## Data
 
-The SQLite database lives in `data/app.db` and is created on first run. The `data/` files are gitignored.
+Data is stored in Postgres. The `users` table is created on startup. In production it lives in the `pgdata` Docker volume.
 
 ## Tests
 
@@ -83,5 +85,5 @@ Run the tests with:
 npm test
 ```
 
-- `test/api.test.js`: the health, users and static-file routes, against a temporary SQLite database (set with `DB_PATH`).
+- `test/api.test.js`: the health, users and static-file routes, against Postgres. Each run uses its own schema, set by `TEST_DATABASE_URL` (default `postgres://postgres:test@localhost:5433/radiocalico`).
 - `test/player.test.js`: the player logic in `public/app.js`, run in a sandbox with stand-ins for the DOM and hls.js. It doesn't play audio or contact the stream.

@@ -1,21 +1,17 @@
-const fs = require('fs');
-const path = require('path');
-const Database = require('better-sqlite3');
+const { Pool } = require('pg');
 
-const dataDir = path.join(__dirname, 'data');
-fs.mkdirSync(dataDir, { recursive: true });
+// DATABASE_URL, for example postgres://user:pass@host:5432/radiocalico
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
-// DB_PATH lets tests use a throwaway database instead of data/app.db.
-const db = new Database(process.env.DB_PATH || path.join(dataDir, 'app.db'));
-db.pragma('journal_mode = WAL');
-
-db.exec(`
+const ready = pool.query(`
   CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
 `);
 
-module.exports = db;
+module.exports = { pool, ready };

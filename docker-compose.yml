@@ -1,30 +1,82 @@
 services:
-  prod:
+  # Production: nginx (frontend) -> backend (API) -> postgres (data).
+  # Only nginx is reachable from outside; backend and postgres stay on the internal network.
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: radiocalico
+      POSTGRES_USER: radio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radio -d radiocalico"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    profiles: ["prod", "dev"]
+
+  backend:
     build:
       context: .
       target: prod
-    image: radiocalico:prod
-    ports:
-      - "3000:3000"
-    volumes:
-      - radiodata:/app/data
+    image: radiocalico-backend:prod
+    environment:
+      DATABASE_URL: postgres://radio:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/radiocalico
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
     profiles: ["prod"]
 
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    image: radiocalico-web:prod
+    ports:
+      - "${PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles: ["prod"]
+
+  # Development: source mounted, nodemon reloads on change, Postgres for parity.
   dev:
     build:
       context: .
       dockerfile: Dockerfile.dev
     image: radiocalico:dev
+    environment:
+      DATABASE_URL: postgres://radio:devpassword@db-dev:5432/radiocalico
     ports:
       - "3001:3000"
     volumes:
       - ./:/app
       # Keep the container's own node_modules, not the host's (native build differs).
       - /app/node_modules
-      - devdata:/app/data
+    depends_on:
+      db-dev:
+        condition: service_healthy
+    profiles: ["dev"]
+
+  db-dev:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: radiocalico
+      POSTGRES_USER: radio
+      POSTGRES_PASSWORD: devpassword
+    volumes:
+      - devpgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radio -d radiocalico"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     profiles: ["dev"]
 
 volumes:
-  radiodata:
-  devdata:
+  pgdata:
+  devpgdata:

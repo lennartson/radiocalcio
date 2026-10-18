@@ -1,20 +1,26 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const os = require('node:os');
-const path = require('node:path');
-const fs = require('node:fs');
+const crypto = require('node:crypto');
 
-// Point the database at a throwaway file before the app loads it.
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'radio-test-'));
-process.env.DB_PATH = path.join(tmpDir, 'test.db');
+// Each run gets its own Postgres schema, so tests never touch real data and
+// can't see each other's rows. Set TEST_DATABASE_URL to a reachable Postgres.
+const schema = `test_${crypto.randomBytes(4).toString('hex')}`;
+const baseUrl = process.env.TEST_DATABASE_URL || 'postgres://postgres:test@localhost:5433/radiocalico';
+process.env.DATABASE_URL = baseUrl + (baseUrl.includes('?') ? '&' : '?') + `options=-c%20search_path%3D${schema}`;
 
-const app = require('../server');
-const db = require('../db');
+const { Pool } = require('pg');
+const admin = new Pool({ connectionString: baseUrl });
 
+let app;
+let pool;
 let server;
 let base;
 
+// The app is required only after the schema exists, because db.js creates its table on import.
 before(async () => {
+  await admin.query(`CREATE SCHEMA ${schema}`);
+  ({ app, pool } = require('../server'));
+  await require('../db').ready;
   server = app.listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -22,8 +28,9 @@ before(async () => {
 
 after(async () => {
   await new Promise((resolve) => server.close(resolve));
-  db.close();
-  fs.rmSync(tmpDir, { recursive: true, force: true });
+  await pool.end();
+  await admin.query(`DROP SCHEMA ${schema} CASCADE`);
+  await admin.end();
 });
 
 test('GET /api/health reports ok', async () => {
