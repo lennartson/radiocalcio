@@ -35,7 +35,7 @@ Requires Docker with the Compose plugin.
 Production runs three containers: **nginx** serves the player and proxies `/api/` to the **backend**, which stores data in **Postgres**. Only nginx is published. Before the first run, create a `.env` file in the project root with a database password (it is git-ignored):
 
 ```sh
-echo POSTGRES_PASSWORD=5304b925787937eab23003a8084c9476 > .env
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)" > .env
 ```
 
 ```sh
@@ -86,6 +86,10 @@ npm test          # unit tests (needs Postgres)
 make test-e2e     # browser tests against the live stream
 ```
 
+- `test/api.test.js`: the health, users and static-file routes, against Postgres. Each run uses its own schema, set by `TEST_DATABASE_URL` (default `postgres://postgres:test@localhost:5433/radiocalico`).
+- `test/player.test.js`: the player logic in `public/app.js`, run in a sandbox with stand-ins for the DOM and hls.js. It doesn't play audio or contact the stream.
+- `e2e/player.spec.js`: browser tests in Chromium for the page UI, real playback, and a check that the player starts with the CDNs blocked.
+
 ## Security
 
 ```sh
@@ -95,6 +99,3 @@ make security
 This runs `npm audit` and fails on high-severity vulnerabilities in production dependencies. Advisories in dev-only tools (currently `nodemon`) are listed but don't fail the check, since they aren't shipped. CI runs the same audit on every pull request.
 
 Run `make help` to list all targets.
-
-- `test/api.test.js`: the health, users and static-file routes, against Postgres. Each run uses its own schema, set by `TEST_DATABASE_URL` (default `postgres://postgres:test@localhost:5433/radiocalico`).
-- `test/player.test.js`: the player logic in `public/app.js`, run in a sandbox with stand-ins for the DOM and hls.js. It doesn't play audio or contact the stream.
