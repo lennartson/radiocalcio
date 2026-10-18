@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Server and checks share one step: background processes don't survive past their step.
+      - name: Start server and check it
+        run: |
+          npm start &
+          for i in $(seq 1 20); do
+            curl -fsS http://localhost:3000/api/health && break
+            if [ "$i" = 20 ]; then
+              echo "Server did not respond on /api/health" >&2
+              exit 1
+            fi
+            sleep 0.5
+          done
+          echo
+          curl -fsS http://localhost:3000/ | grep -q 'style.css'
+          curl -fsS http://localhost:3000/ | grep -q 'app.js'
+          curl -fsS -o /dev/null http://localhost:3000/style.css
+          curl -fsS -o /dev/null http://localhost:3000/app.js
