@@ -58,6 +58,10 @@ The backend image is published for `linux/amd64` and `linux/arm64` at `ghcr.io/l
 
 Shortcuts: `make docker-up` starts production and `make docker-down` stops it. Run `make help` for all targets.
 
+## Architecture
+
+System and deployment diagrams (Mermaid) are in [`docs/architecture.md`](docs/architecture.md).
+
 ## Project layout
 
 - `server.js`: Express API, plus static serving of `public/` when run standalone.
