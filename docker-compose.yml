@@ -1,0 +1,30 @@
+services:
+  prod:
+    build:
+      context: .
+      target: prod
+    image: radiocalico:prod
+    ports:
+      - "3000:3000"
+    volumes:
+      - radiodata:/app/data
+    restart: unless-stopped
+    profiles: ["prod"]
+
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: radiocalico:dev
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./:/app
+      # Keep the container's own node_modules, not the host's (native build differs).
+      - /app/node_modules
+      - devdata:/app/data
+    profiles: ["dev"]
+
+volumes:
+  radiodata:
+  devdata:

@@ -28,6 +28,20 @@ For development, `npm run dev` runs the server under nodemon, which restarts it 
 
 The stream URL is in `stream_URL.txt` and in the `STREAM_URL` constant at the top of `public/app.js`. Keep them in sync.
 
+## Docker
+
+Requires Docker with the Compose plugin.
+
+```sh
+# Production: built image, data kept in a named volume, port 3000
+docker compose --profile prod up --build
+
+# Development: source mounted, auto-restarts on change, port 3001
+docker compose --profile dev up --build
+```
+
+The `prod` image installs production dependencies only and runs as a non-root user. The SQLite database is stored in a volume so it survives rebuilds. The `dev` image uses a separate volume.
+
 ## Project layout
 
 - `server.js`: Express server that serves `public/` and the API routes.
