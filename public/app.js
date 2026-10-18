@@ -9,7 +9,15 @@ const volumeEl = document.getElementById('volume');
 const muteBtn = document.getElementById('muteBtn');
 const nowPlaying = document.getElementById('nowPlaying');
 
+const streamQualityEl = document.getElementById('streamQuality');
+const STREAM_QUALITY_FLAC = '48kHz FLAC / HLS Lossless';
+const STREAM_QUALITY_AAC = 'AAC / HLS';
+
 let isPlaying = false;
+
+function setStreamQuality(text) {
+  streamQualityEl.textContent = text;
+}
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -25,6 +33,8 @@ function setReady() {
 }
 
 function setupNativeHls() {
+  // Native HLS doesn't expose the active level, so show a neutral label.
+  setStreamQuality('HLS');
   audio.src = STREAM_URL;
   setReady();
 }
@@ -52,6 +62,13 @@ function setupHlsJs() {
   hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
     aacLevel = data.levels.findIndex((l) => /mp4a/.test(l.audioCodec || l.attrs.CODECS || ''));
     setReady();
+  });
+
+  hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+    const level = hls.levels[data.level];
+    const codec = level && (level.audioCodec || (level.attrs && level.attrs.CODECS) || '');
+    if (/mp4a/.test(codec)) setStreamQuality(STREAM_QUALITY_AAC);
+    else if (/flac/i.test(codec)) setStreamQuality(STREAM_QUALITY_FLAC);
   });
 
   hls.on(Hls.Events.ERROR, (event, data) => {
