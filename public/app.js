@@ -15,6 +15,21 @@ function setStatus(text) {
   statusEl.textContent = text;
 }
 
+const FLAC_LABEL = '48kHz FLAC / HLS Lossless';
+const AAC_LABEL = 'AAC / HLS';
+const NATIVE_LABEL = 'HLS';
+
+function setStreamQuality(text) {
+  document.getElementById('streamQuality').textContent = text;
+}
+
+function labelForLevel(level) {
+  const codec = (level && (level.audioCodec || (level.attrs && level.attrs.CODECS))) || '';
+  if (/mp4a/i.test(codec)) return AAC_LABEL;
+  if (/flac/i.test(codec)) return FLAC_LABEL;
+  return null;
+}
+
 function setLoading(loading) {
   nowPlaying.classList.toggle('is-loading', loading);
 }
@@ -26,6 +41,8 @@ function setReady() {
 
 function setupNativeHls() {
   audio.src = STREAM_URL;
+  // The active rendition isn't visible to the page with native HLS.
+  setStreamQuality(NATIVE_LABEL);
   setReady();
 }
 
@@ -52,6 +69,11 @@ function setupHlsJs() {
   hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
     aacLevel = data.levels.findIndex((l) => /mp4a/.test(l.audioCodec || l.attrs.CODECS || ''));
     setReady();
+  });
+
+  hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+    const label = labelForLevel(hls.levels[data.level]);
+    if (label) setStreamQuality(label);
   });
 
   hls.on(Hls.Events.ERROR, (event, data) => {
