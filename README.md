@@ -59,7 +59,7 @@ The easiest deployment is the compose stack above, run from a checkout of this r
 - `server.js`: Express API, plus static serving of `public/` when run standalone.
 - `db.js`: Postgres connection pool (`DATABASE_URL`). Creates the `users` table on startup.
 - `Dockerfile` / `Dockerfile.nginx` / `Dockerfile.dev`: backend, frontend, and dev images.
-- `nginx/default.conf`: nginx config for static files and the API proxy.
+- `nginx/default.conf`: nginx config for static files, gzip for text responses, and the API proxy.
 - `public/`: the player (`index.html`, `style.css`, `app.js`) and the logo.
 - `RadioCalico_Style_Guide.txt`: brand colors, typography, and UI guidelines.
 
