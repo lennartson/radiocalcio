@@ -51,4 +51,11 @@ The SQLite database lives in `data/app.db` and is created on first run. The `dat
 
 ## Tests
 
-There are no tests yet. `npm test` is a placeholder that exits with an error.
+Run the tests with:
+
+```sh
+npm test
+```
+
+- `test/api.test.js`: the health, users and static-file routes, against a temporary SQLite database (set with `DB_PATH`).
+- `test/player.test.js`: the player logic in `public/app.js`, run in a sandbox with stand-ins for the DOM and hls.js. It doesn't play audio or contact the stream.
