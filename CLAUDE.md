@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Install: `npm install`
 - Run: `npm start` (serves on `http://localhost:3000`; set `PORT` to change it)
 - Dev with auto-restart: `npm run dev` (nodemon)
-- Tests: none. `npm test` is the npm placeholder and exits with an error. There is no lint or build step.
+- Tests: `npm test` (Node's built-in test runner, no extra dependencies). It runs `test/api.test.js` and `test/player.test.js` together. To run one file: `node --test test/player.test.js`. Tests need Node 22+ (`node --test` doesn't accept a directory on Node 24). There is no lint or build step.
 
 ## Architecture
 
