@@ -82,8 +82,19 @@ Data is stored in Postgres. The `users` table is created on startup. In producti
 Run the tests with:
 
 ```sh
-npm test
+npm test          # unit tests (needs Postgres)
+make test-e2e     # browser tests against the live stream
 ```
+
+## Security
+
+```sh
+make security
+```
+
+This runs `npm audit` and fails on high-severity vulnerabilities in production dependencies. Advisories in dev-only tools (currently `nodemon`) are listed but don't fail the check, since they aren't shipped. CI runs the same audit on every pull request.
+
+Run `make help` to list all targets.
 
 - `test/api.test.js`: the health, users and static-file routes, against Postgres. Each run uses its own schema, set by `TEST_DATABASE_URL` (default `postgres://postgres:test@localhost:5433/radiocalico`).
 - `test/player.test.js`: the player logic in `public/app.js`, run in a sandbox with stand-ins for the DOM and hls.js. It doesn't play audio or contact the stream.
