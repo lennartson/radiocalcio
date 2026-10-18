@@ -52,7 +52,11 @@ Production data lives in the `pgdata` volume and survives `docker compose down`.
 
 The backend image is published to GHCR, and the nginx frontend is built from this repo. The stream itself is external: the live audio, track metadata and cover art come from `d3d4yli4hf5bmh.cloudfront.net`, so the host needs outbound internet access.
 
-The easiest deployment is the compose stack above, run from a checkout of this repo. Images for the backend are published for `linux/amd64` and `linux/arm64` at `ghcr.io/lennartson/radiocalcio`.
+Deploy the compose stack above, run from a checkout of this repo. It needs all three containers, so don't run the published image on its own: it's the backend API only, and nginx serves the player.
+
+The backend image is published for `linux/amd64` and `linux/arm64` at `ghcr.io/lennartson/radiocalcio`.
+
+Shortcuts: `make docker-up` starts production and `make docker-down` stops it. Run `make help` for all targets.
 
 ## Project layout
 
@@ -86,6 +90,8 @@ npm test          # unit tests (needs Postgres)
 make test-e2e     # browser tests against the live stream
 ```
 
+The browser tests play the real stream, so they need internet access. A stream outage fails them without any code problem.
+
 - `test/api.test.js`: the health, users and static-file routes, against Postgres. Each run uses its own schema, set by `TEST_DATABASE_URL` (default `postgres://postgres:test@localhost:5433/radiocalico`).
 - `test/player.test.js`: the player logic in `public/app.js`, run in a sandbox with stand-ins for the DOM and hls.js. It doesn't play audio or contact the stream.
 - `e2e/player.spec.js`: browser tests in Chromium for the page UI, real playback, and a check that the player starts with the CDNs blocked.
@@ -96,6 +102,17 @@ make test-e2e     # browser tests against the live stream
 make security
 ```
 
-This runs `npm audit` and fails on high-severity vulnerabilities in production dependencies. Advisories in dev-only tools (currently `nodemon`) are listed but don't fail the check, since they aren't shipped. CI runs the same audit on every pull request.
+This runs `npm audit` and fails on high-severity vulnerabilities in production dependencies. Advisories in dev-only tools (currently `nodemon`) are listed but don't fail the check, since they aren't shipped.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`:
+
+- **`test`**: the production security audit, the 17 unit tests against Postgres, and a smoke check of the server.
+- **`browser`**: the 8 Playwright browser tests in Chromium.
+
+`.github/workflows/docker-publish.yml` builds the backend image for both architectures. Pushes to `main` publish it to GHCR.
+
+On `main`, the `test`, `browser` and `image` checks are required before a PR can merge, and the branch must be up to date. Admins are not exempt.
 
 Run `make help` to list all targets.

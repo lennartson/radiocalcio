@@ -7,6 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Install: `npm install`
 - Run: `npm start` (serves on `http://localhost:3000`; set `PORT` to change it, and `DATABASE_URL` to a Postgres connection string)
 - Dev with auto-restart: `npm run dev` (nodemon)
+- Production stack: `make docker-up` / `make docker-down` (nginx, backend, Postgres; needs a git-ignored `.env` with `POSTGRES_PASSWORD`)
+- CI: `.github/workflows/ci.yml` runs `test` (audit, unit tests, smoke check) and `browser` (Playwright). `main` requires `test`, `browser` and `image` to pass before merge.
 - Browser tests: `make test-e2e` (Playwright, Chromium; uses the live stream, so it needs network access)
 - Security: `make security` runs `npm audit --omit=dev --audit-level=high` and fails on high-severity production vulnerabilities. CI runs the same check.
 - Tests: `npm test` (Node's built-in test runner, no extra dependencies). It runs `test/api.test.js` and `test/player.test.js` together. To run one file: `node --test test/player.test.js`. Tests need Node 22+ (`node --test` doesn't accept a directory on Node 24). There is no lint or build step.
