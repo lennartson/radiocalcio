@@ -1,25 +1,18 @@
-# Production image: production dependencies only, runs as a non-root user.
+# Backend image: production dependencies only, runs the API as a non-root user.
+# The web frontend is served by nginx (Dockerfile.nginx), not by this image.
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-# better-sqlite3 is a native module, so it needs a build toolchain here.
-RUN apt-get update \
- && apt-get install -y --no-install-recommends python3 make g++ \
- && npm ci --omit=dev \
- && apt-get purge -y python3 make g++ && apt-get autoremove -y \
- && rm -rf /var/lib/apt/lists/*
+RUN npm ci --omit=dev
 
 FROM node:22-bookworm-slim AS prod
 ENV NODE_ENV=production \
-    PORT=3000 \
-    DB_PATH=/app/data/app.db
+    PORT=3000
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json server.js db.js ./
+# server.js still serves public/ when run standalone, so include it.
 COPY public ./public
-# The SQLite file lives in a volume so user data survives container rebuilds.
-RUN mkdir -p /app/data && chown -R node:node /app/data
-VOLUME ["/app/data"]
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \

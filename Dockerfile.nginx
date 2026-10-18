@@ -1,0 +1,15 @@
+# Frontend image: nginx serves the player and the vendored packages, and proxies /api/ to the backend.
+FROM node:22-bookworm-slim AS vendor
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+FROM nginx:1.27-alpine
+COPY public /usr/share/nginx/html
+COPY --from=vendor /app/node_modules/hls.js/dist /usr/share/nginx/html/vendor/hls
+COPY --from=vendor /app/node_modules/@fontsource/montserrat /usr/share/nginx/html/vendor/fonts/montserrat
+COPY --from=vendor /app/node_modules/@fontsource/open-sans /usr/share/nginx/html/vendor/fonts/open-sans
+COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=3s --start-period=3s \
+  CMD wget -qO- http://localhost/api/health >/dev/null || exit 1
