@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const db = require('./db');
 
@@ -6,6 +7,10 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static('public'));
+// Vendored front-end packages, so the page needs no CDN access.
+app.use('/vendor/hls', express.static(path.join(__dirname, 'node_modules/hls.js/dist')));
+app.use('/vendor/fonts/montserrat', express.static(path.join(__dirname, 'node_modules/@fontsource/montserrat')));
+app.use('/vendor/fonts/open-sans', express.static(path.join(__dirname, 'node_modules/@fontsource/open-sans')));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

@@ -21,7 +21,7 @@ For development, `npm run dev` runs the server under nodemon, which restarts it 
 
 ## How it works
 
-- `public/index.html` is the page markup. It loads `public/style.css` and `public/app.js`, plus hls.js from jsDelivr.
+- `public/index.html` is the page markup. It loads `public/style.css` and `public/app.js`, plus hls.js. Both hls.js and the fonts are served from this server, so the page needs no CDN access.
 - `public/app.js` plays the stream and polls the track metadata every 15 seconds.
 - The audio and metadata come directly from the CloudFront origin. The Node server only serves the `public/` folder.
 - Where the browser has no MSE support (such as iOS Safari), the player uses native HLS playback.
@@ -41,6 +41,18 @@ docker compose --profile dev up --build
 ```
 
 The `prod` image installs production dependencies only and runs as a non-root user. The SQLite database is stored in a volume so it survives rebuilds. The `dev` image uses a separate volume.
+
+## Deploy
+
+The published image needs no checkout or build step. It only needs outbound access to the stream host (`d3d4yli4hf5bmh.cloudfront.net`), since the live audio, track metadata and cover art come from there.
+
+```sh
+docker run -d --name radiocalico -p 3000:3000 \
+  -v radiodata:/app/data --restart unless-stopped \
+  ghcr.io/lennartson/radiocalcio:latest
+```
+
+The SQLite database is stored in the `radiodata` volume. Images are published for `linux/amd64` and `linux/arm64`.
 
 ## Project layout
 

@@ -14,8 +14,11 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@fontsource/montserrat": "^5.3.0",
+    "@fontsource/open-sans": "^5.3.0",
     "better-sqlite3": "^13.0.3",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "hls.js": "^1.7.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

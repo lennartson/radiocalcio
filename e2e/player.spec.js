@@ -85,3 +85,21 @@ test.describe('real playback', () => {
     );
   });
 });
+
+test.describe('no external CDN dependencies', () => {
+  test('player starts with jsDelivr and Google Fonts blocked', async ({ page }) => {
+    const blocked = [];
+    await page.route(/cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com/, (route) => {
+      blocked.push(route.request().url());
+      return route.abort();
+    });
+
+    await page.goto('/');
+    await expect(page.locator('#playBtn')).toBeEnabled({ timeout: 30000 });
+    await expect(await page.evaluate(() => typeof window.Hls)).toBe('function');
+    await expect(page.locator('#playBtn')).toBeEnabled();
+
+    // The page must not have needed any of the blocked hosts to start.
+    expect(blocked).toEqual([]);
+  });
+});

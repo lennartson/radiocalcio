@@ -81,3 +81,14 @@ test('static player assets are served from public/', async () => {
     assert.equal(res.status, 200, file);
   }
 });
+
+test('vendored hls.js and fonts are served locally', async () => {
+  const hls = await fetch(`${base}/vendor/hls/hls.min.js`);
+  assert.equal(hls.status, 200);
+  assert.match(hls.headers.get('content-type'), /javascript/);
+
+  for (const family of ['montserrat', 'open-sans']) {
+    const css = await fetch(`${base}/vendor/fonts/${family}/index.css`);
+    assert.equal(css.status, 200, family);
+  }
+});
